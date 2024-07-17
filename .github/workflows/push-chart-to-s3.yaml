@@ -1,0 +1,34 @@
+name: Push to ECR
+on:
+  workflow_call:
+    inputs:
+      chart-path:
+        required: true
+        type: string
+      chart-name:
+        required: true
+        type: string
+      chart-version:
+        required: true
+        type: number
+      bucket-name:
+        type: string
+        required: true
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  push-chart:
+    name: Push Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Push Chart to S3
+        run: |
+          helm plugin install https://github.com/hypnoglow/helm-s3.git
+          helm s3 init s3://${{ inputs.bucket-name }}
+          helm repo add ${{ inputs.bucket-name }} s3://${{ inputs.bucket-name }}
+          helm package ${{ inputs.chart-path }}
+          helm s3 push "${{ inputs.chart-name }}-${{ inputs.chart-version }}.tgz" ${{ inputs.bucket-name }}
+          
